@@ -93,7 +93,7 @@
 <div class="wrap">
   <header>
     <h1>Bobby's Plays</h1>
-    <div class="updated">Last updated Thursday, Nov 5, 1:47 PM PT</div>
+    <div class="updated">Last updated Thursday, Nov 5, 1:58 PM PT</div>
   </header>
 
   <nav id="tabs">
@@ -207,16 +207,12 @@ function bySport(list) {
 }
 function renderGames() {
   const today = D.picks.filter(p => p.date === D.today);
-  const rec = today.filter(p => p.section === "record");
-  const upd = today.filter(p => p.section === "update");
+  // Record and mid-day update picks share one list; only the Record tab tells them apart.
+  const games = today.filter(p => p.section === "record" || p.section === "update");
   let h = `<h2>Today · ${niceDate(D.today)}</h2>`;
-  h += rec.length ? bySport(rec)
+  h += games.length ? bySport(games)
                   : `<div class="empty">${Number(new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", hourCycle: "h23" })) < 8
                       ? "Today's card goes live at 8:00 AM PT." : "No record card today. Tomorrow's card goes live at 8:00 AM PT."}</div>`;
-  if (upd.length) {
-    h += `<h2>UPDATED DAY LIVE BETS</h2><p class="note">Not counted in the record.</p>`;
-    h += bySport(upd);
-  }
   document.getElementById("games").innerHTML = h;
 }
 
