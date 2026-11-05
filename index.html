@@ -93,7 +93,7 @@
 <div class="wrap">
   <header>
     <h1>Bobby's Plays</h1>
-    <div class="updated">Last updated Thursday, Nov 5, 1:40 PM PT</div>
+    <div class="updated">Last updated Thursday, Nov 5, 1:47 PM PT</div>
   </header>
 
   <nav id="tabs">
@@ -196,12 +196,14 @@ function card(p) {
     <div class="card-pick">Pick: <b>${pickLabel(p)}</b></div></div>`;
 }
 const byStart = (a, b) => (a.start_utc || "").localeCompare(b.start_utc || "");
-// One heading and grid per sport, in the site's sport order.
+// One heading and grid per sport, fewest games on top (ties keep the site's sport order).
 function bySport(list) {
-  return D.sports.map(s => {
-    const games = list.filter(p => p.sport === s).sort(byStart);
-    return games.length ? `<h3>${s} · ${games.length}</h3><div class="grid">${games.map(card).join("")}</div>` : "";
-  }).join("");
+  return D.sports
+    .map(s => list.filter(p => p.sport === s).sort(byStart))
+    .filter(games => games.length)
+    .sort((a, b) => a.length - b.length)
+    .map(games => `<h3>${games[0].sport} · ${games.length}</h3><div class="grid">${games.map(card).join("")}</div>`)
+    .join("");
 }
 function renderGames() {
   const today = D.picks.filter(p => p.date === D.today);
