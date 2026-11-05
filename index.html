@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bobby's Plays</title>
+<style>
+  :root {
+    --bg: #1E1F22;
+    --panel: #2B2D31;
+    --panel-2: #35373C;
+    --line: #3F4147;
+    --text: #FFFFFF;
+    --muted: #A6A8AD;
+    --orange: #DC4405;
+    --win: #2EBD59;
+    --loss: #E5484D;
+    --push: #8B8D93;
+    --live: #F5A524;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body { font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--orange); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px 48px; }
+
+  header { text-align: center; padding: 32px 0 16px; }
+  header h1 { margin: 0; font-size: clamp(34px, 7vw, 54px); font-weight: 800; letter-spacing: -0.5px; }
+  header .updated { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  nav { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 8px 0 24px; }
+  nav button {
+    background: var(--panel); color: var(--text); border: 1px solid var(--line);
+    border-radius: 999px; padding: 8px 16px; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  nav button:hover { border-color: var(--orange); }
+  nav button.active { background: var(--orange); border-color: var(--orange); }
+
+  h2 { color: var(--orange); font-size: 20px; margin: 28px 0 12px; }
+  h3 { color: var(--orange); font-size: 16px; margin: 20px 0 8px; }
+  .note { color: var(--muted); font-size: 13px; margin: -6px 0 12px; }
+  .empty { background: var(--panel); border-radius: 10px; padding: 24px; text-align: center; color: var(--muted); }
+
+  /* Game cards */
+  .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 641px) { .grid { grid-template-columns: 1fr 1fr; } }
+  .card { background: var(--panel); border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+  .card-top { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px;
+              background: var(--panel-2); font-size: 12px; font-weight: 700; letter-spacing: .4px; }
+  .sport { color: var(--muted); }
+  .status { color: var(--muted); }
+  .status.live { color: var(--live); }
+  .status.live::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+                         background: var(--live); margin-right: 6px; vertical-align: 1px; }
+  .badge { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+           text-align: center; color: #fff; }
+  .badge.W { background: var(--win); } .badge.L { background: var(--loss); } .badge.P { background: var(--push); }
+  .team { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-left: 3px solid transparent; }
+  .team + .team { border-top: 1px solid var(--line); }
+  .team.picked { border-left-color: var(--orange); }
+  .logo { width: 32px; height: 32px; flex: none; object-fit: contain; }
+  .abbr-circle { width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--panel-2);
+                 border: 1px solid var(--line); display: grid; place-items: center; font-size: 10px; font-weight: 800; }
+  .tname { flex: 1; min-width: 0; }
+  .tname b { display: block; }
+  .tname span { color: var(--muted); font-size: 12px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .score { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; }
+  .score.W { color: var(--win); } .score.L { color: var(--loss); } .score.P { color: var(--push); }
+  .card-pick { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  .card-pick b { color: var(--text); }
+
+  /* Record */
+  .big { background: var(--panel); border-radius: 10px; padding: 20px; text-align: center; }
+  .big .rec { font-size: 36px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .big .sub { color: var(--muted); margin-top: 4px; }
+  .pos { color: var(--win); } .neg { color: var(--loss); } .zero { color: var(--push); }
+
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 10px; overflow: hidden;
+          font-variant-numeric: tabular-nums; }
+  th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+  th { background: var(--panel-2); font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; }
+  .tbl-wrap { overflow-x: auto; }
+  .res { font-weight: 800; }
+  .res.W { color: var(--win); } .res.L { color: var(--loss); } .res.P, .res.pending { color: var(--push); }
+
+  section[hidden] { display: none; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Bobby's Plays</h1>
+    <div class="updated">Last updated Thursday, Nov 5, 1:26 PM PT</div>
+  </header>
+
+  <nav id="tabs">
+    <button data-tab="games" class="active">Games</button>
+    <button data-tab="record">Record</button>
+    <button data-tab="sneak">Sneak Peek</button>
+    <button data-tab="week">Week</button>
+    <button data-tab="history">History</button>
+  </nav>
+
+  <section id="games"></section>
+  <section id="record" hidden></section>
+  <section id="sneak" hidden></section>
+  <section id="week" hidden></section>
+  <section id="history" hidden></section>
+
+  <footer>Every pick is 1 unit. For entertainment only.</footer>
+</div>
+
+<script>
+const D = {"today": "2026-11-05", "tomorrow": "2026-11-06", "since": "2026-10-30", "sports": ["NBA", "CBB", "CFB", "NFL", "UFC", "MLB"], "picks": [], "sneak": []};
+const MINUS = "−";
+const ESPN = {
+  NBA: "basketball/nba", CBB: "basketball/mens-college-basketball", CFB: "football/college-football",
+  NFL: "football/nfl", UFC: "mma/ufc", MLB: "baseball/mlb"
+};
+const GROUPS = { CBB: "&groups=50", CFB: "&groups=80" };
+const live = {}; // espn_event_id -> {state, detail, away:{score,logo}, home:{score,logo}}
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const signed = (n, digits) => (n > 0 ? "+" : n < 0 ? MINUS : "") + Math.abs(n).toFixed(digits);
+const fmtOdds = o => { const n = Number(o); return o === "" || isNaN(n) ? "" : (n > 0 ? "+" : MINUS) + Math.abs(n); };
+const fmtLine = l => { const n = Number(l); return n === 0 ? "PK" : (n > 0 ? "+" : MINUS) + Math.abs(n); };
+const fmtUnits = u => signed(u, 2) + "u";
+const unitClass = u => u > 0 ? "pos" : u < 0 ? "neg" : "zero";
+
+function pickTeam(p) { return p.pick_side === "home" ? (p.home_abbr || p.home) : (p.away_abbr || p.away); }
+function pickLabel(p) {
+  const t = esc(pickTeam(p));
+  if (p.market === "spread") return `${t} ${fmtLine(p.line)} (${fmtOdds(p.odds)})`;
+  return `${t} ML ${fmtOdds(p.odds)}`;
+}
+function unitsFor(result, odds) {
+  if (result === "L") return -1;
+  if (result === "P") return 0;
+  if (result === "W") { const o = Number(odds); return o > 0 ? o / 100 : 100 / Math.abs(o); }
+  return null;
+}
+// Grade from a final score. Only used for display until the nightly grade fills the ledger.
+function gradeFromScore(p, away, home) {
+  const mine = p.pick_side === "home" ? home : away, theirs = p.pick_side === "home" ? away : home;
+  const margin = mine - theirs + (p.market === "spread" ? Number(p.line) : 0);
+  return margin > 0 ? "W" : margin < 0 ? "L" : "P";
+}
+function ptTime(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", minute: "2-digit" }) + " PT";
+}
+function niceDate(d) {
+  return new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
+}
+
+const recordPicks = () => D.picks.filter(p => p.section === "record" && p.date >= D.since);
+function tally(list) {
+  const t = { W: 0, L: 0, P: 0, units: 0, graded: 0 };
+  for (const p of list) {
+    if (!["W", "L", "P"].includes(p.result)) continue;
+    t[p.result]++; t.graded++;
+    t.units += p.units !== "" ? Number(p.units) : unitsFor(p.result, p.odds);
+  }
+  t.roi = t.graded ? t.units / t.graded * 100 : 0;
+  t.text = `${t.W}-${t.L}` + (t.P ? `-${t.P}` : "");
+  return t;
+}
+
+/* ---------- Games ---------- */
+function teamRow(p, side, info, result) {
+  const name = p[side], abbr = p[side + "_abbr"] || name.slice(0, 3).toUpperCase();
+  const logo = info?.[side]?.logo;
+  const img = logo
+    ? `<img class="logo" src="${esc(logo)}" alt="" onerror="this.outerHTML='<div class=&quot;abbr-circle&quot;>${esc(abbr)}</div>'">`
+    : `<div class="abbr-circle">${esc(abbr)}</div>`;
+  const score = info && info.state !== "pre" ? info[side].score : "";
+  const scoreCls = info?.state === "post" && result ? result : "";
+  return `<div class="team${p.pick_side === side ? " picked" : ""}">${img}
+    <div class="tname"><b>${esc(abbr)}</b><span>${esc(name)}</span></div>
+    <div class="score ${scoreCls}">${esc(score)}</div></div>`;
+}
+function card(p) {
+  const info = live[p.espn_event_id];
+  let status, result = p.result;
+  if (info?.state === "in") {
+    status = `<span class="status live">LIVE · ${esc(info.detail)}</span>`;
+  } else if (info?.state === "post" || result) {
+    if (!result && info) result = gradeFromScore(p, Number(info.away.score), Number(info.home.score));
+    status = `<span class="status">FINAL${result ? `<span class="badge ${result}">${result}</span>` : ""}</span>`;
+  } else {
+    status = `<span class="status">NOT STARTED · ${esc(ptTime(p.start_utc))}</span>`;
+  }
+  return `<div class="card">
+    <div class="card-top"><span class="sport">${esc(p.sport)}</span>${status}</div>
+    ${teamRow(p, "away", info, result)}
+    ${teamRow(p, "home", info, result)}
+    <div class="card-pick">Pick: <b>${pickLabel(p)}</b></div></div>`;
+}
+const byStart = (a, b) => (a.start_utc || "").localeCompare(b.start_utc || "");
+function renderGames() {
+  const today = D.picks.filter(p => p.date === D.today);
+  const rec = today.filter(p => p.section === "record").sort(byStart);
+  const upd = today.filter(p => p.section === "update").sort(byStart);
+  let h = `<h2>Today · ${niceDate(D.today)}</h2>`;
+  h += rec.length ? `<div class="grid">${rec.map(card).join("")}</div>`
+                  : `<div class="empty">Today's card goes live at 8:00 AM PT.</div>`;
+  if (upd.length) {
+    h += `<h2>UPDATED DAY LIVE BETS</h2><p class="note">Not counted in the record.</p>`;
+    h += `<div class="grid">${upd.map(card).join("")}</div>`;
+  }
+  document.getElementById("games").innerHTML = h;
+}
+
+/* ---------- Record ---------- */
+function renderRecord() {
+  const all = tally(recordPicks());
+  let h = `<h2>Record</h2><div class="big">
+    <div class="rec">${all.text}</div>
+    <div class="sub"><span class="${unitClass(all.units)}">${fmtUnits(all.units)}</span> · ROI
+      <span class="${unitClass(all.roi)}">${signed(all.roi, 1)}%</span> · Since Oct 30</div></div>`;
+  h += `<h3>By sport</h3><div class="tbl-wrap"><table><thead><tr><th>Sport</th><th>Record</th>
+        <th class="num">Units</th><th class="num">ROI</th></tr></thead><tbody>`;
+  for (const s of D.sports) {
+    const t = tally(recordPicks().filter(p => p.sport === s));
+    h += `<tr><td>${s}</td><td>${t.text}</td>
+      <td class="num ${unitClass(t.units)}">${fmtUnits(t.units)}</td>
+      <td class="num ${unitClass(t.roi)}">${t.graded ? signed(t.roi, 1) + "%" : "—"}</td></tr>`;
+  }
+  document.getElementById("record").innerHTML = h + `</tbody></table></div>`;
+}
+
+/* ---------- Sneak Peek ---------- */
+function renderSneak() {
+  const games = (D.sneak || []).slice().sort(byStart);
+  let h = `<h2>Sneak Peek · ${niceDate(D.tomorrow)}</h2><p class="note">Picks drop at 8:00 AM PT.</p>`;
+  if (!games.length) h += `<div class="empty">Tomorrow's slate isn't posted yet.</div>`;
+  else {
+    h += `<div class="tbl-wrap"><table><thead><tr><th>Sport</th><th>Matchup</th><th>Time</th></tr></thead><tbody>`;
+    for (const g of games) h += `<tr><td>${esc(g.sport)}</td><td>${esc(g.away)} at ${esc(g.home)}</td><td>${esc(ptTime(g.start_utc))}</td></tr>`;
+    h += `</tbody></table></div>`;
+  }
+  document.getElementById("sneak").innerHTML = h;
+}
+
+/* ---------- Week & History ---------- */
+function dayTable(list) {
+  let h = `<div class="tbl-wrap"><table><thead><tr><th>Sport</th><th>Matchup</th><th>Pick</th>
+           <th>Result</th><th class="num">Units</th></tr></thead><tbody>`;
+  for (const p of list.slice().sort(byStart)) {
+    const u = p.units !== "" ? Number(p.units) : unitsFor(p.result, p.odds);
+    h += `<tr><td>${esc(p.sport)}</td><td>${esc(p.away_abbr || p.away)} at ${esc(p.home_abbr || p.home)}</td>
+      <td>${pickLabel(p)}</td><td class="res ${p.result || "pending"}">${p.result || "—"}</td>
+      <td class="num ${u === null ? "" : unitClass(u)}">${u === null ? "" : fmtUnits(u)}</td></tr>`;
+  }
+  return h + `</tbody></table></div>`;
+}
+function daysSection(list, emptyText) {
+  const days = [...new Set(list.map(p => p.date))].sort().reverse();
+  if (!days.length) return `<div class="empty">${emptyText}</div>`;
+  return days.map(d => {
+    const dl = list.filter(p => p.date === d), t = tally(dl);
+    return `<h3>${niceDate(d)} · ${t.text} <span class="${unitClass(t.units)}">${fmtUnits(t.units)}</span></h3>${dayTable(dl)}`;
+  }).join("");
+}
+function weekStart() {
+  const d = new Date(D.today + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); // back to Monday
+  return d.toISOString().slice(0, 10);
+}
+function renderWeek() {
+  const ws = weekStart(), list = recordPicks().filter(p => p.date >= ws && p.date <= D.today), t = tally(list);
+  document.getElementById("week").innerHTML =
+    `<h2>This week · ${t.text} <span class="${unitClass(t.units)}">${fmtUnits(t.units)}</span></h2>
+     <p class="note">Week of ${niceDate(ws)}</p>` + daysSection(list, "No picks yet this week.");
+}
+function renderHistory() {
+  const list = recordPicks().filter(p => p.date < D.today);
+  document.getElementById("history").innerHTML = `<h2>History</h2>` + daysSection(list, "No graded days yet.");
+}
+
+/* ---------- Live scores (ESPN, every 45s) ---------- */
+async function poll() {
+  const today = D.picks.filter(p => p.date === D.today && p.espn_event_id);
+  const open = today.filter(p => live[p.espn_event_id]?.state !== "post" && !p.result);
+  if (!open.length && Object.keys(live).length) return;
+  const jobs = [...new Set(today.map(p => p.sport + "|" + p.date))];
+  await Promise.all(jobs.map(async job => {
+    const [sport, d] = job.split("|");
+    if (!ESPN[sport]) return;
+    const url = `https://site.api.espn.com/apis/site/v2/sports/${ESPN[sport]}/scoreboard?dates=${d.replace(/-/g, "")}&limit=1000${GROUPS[sport] || ""}`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return;
+      for (const ev of (await res.json()).events || []) {
+        const comp = ev.competitions?.[0];
+        if (!comp) continue;
+        const side = ha => {
+          const c = comp.competitors.find(x => x.homeAway === ha) || {};
+          return { score: c.score ?? "", logo: c.team?.logo || c.athlete?.flag?.href || "" };
+        };
+        live[ev.id] = { state: comp.status?.type?.state || ev.status?.type?.state,
+                        detail: comp.status?.type?.shortDetail || "", away: side("away"), home: side("home") };
+      }
+    } catch (e) { /* offline or blocked: cards keep their last state */ }
+  }));
+  renderGames();
+}
+
+/* ---------- Tabs ---------- */
+document.getElementById("tabs").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("active", x === b));
+  document.querySelectorAll("main section, .wrap > section").forEach(s => s.hidden = s.id !== b.dataset.tab);
+});
+
+renderGames(); renderRecord(); renderSneak(); renderWeek(); renderHistory();
+poll();
+setInterval(poll, 45000);
+</script>
+</body>
+</html>
