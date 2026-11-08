@@ -70,6 +70,15 @@
   .card-pick { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
   .card-pick b { color: var(--text); }
 
+  /* Sport filter */
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 14px; }
+  .filters button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 999px;
+                    padding: 5px 12px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .filters button span { color: var(--muted); font-weight: 500; margin-left: 4px; }
+  .filters button:hover { border-color: var(--orange); }
+  .filters button.active { background: var(--orange); border-color: var(--orange); }
+  .filters button.active span { color: #fff; }
+
   /* Parlays */
   .parlays { display: grid; grid-template-columns: 1fr; gap: 12px; }
   @media (min-width: 641px) { .parlays { grid-template-columns: 1fr 1fr; } }
@@ -131,7 +140,7 @@
 <div class="wrap">
   <header>
     <h1>Bobby's Plays</h1>
-    <div class="updated">Last updated Saturday, Nov 7, 11:03 PM PT</div>
+    <div class="updated">Last updated Saturday, Nov 7, 11:16 PM PT</div>
   </header>
 
   <nav id="tabs">
@@ -274,12 +283,38 @@ function parlayBlock() {
       }).join("")}</div>`;
   }).join("") + `</div><p class="note" style="margin-top:8px">Parlays are built from today's picks and don't count toward the record.</p>`;
 }
+// Sport filter shared by Games and History; remembered on this device only.
+let sportFilter = "All";
+try { sportFilter = localStorage.getItem("sportFilter") || "All"; } catch (e) {}
+function filterBar(list, order) {
+  const counts = {};
+  list.forEach(p => counts[p.sport] = (counts[p.sport] || 0) + 1);
+  const sports = order(Object.keys(counts), counts);
+  if (sports.length < 2) return "";
+  return `<div class="filters">` + ["All", ...sports].map(s =>
+    `<button data-sport="${s}" class="${s === sportFilter ? "active" : ""}">${s}<span>${s === "All" ? list.length : counts[s]}</span></button>`
+  ).join("") + `</div>`;
+}
+const fewestFirst = (sports, counts) => sports.sort((a, b) => counts[a] - counts[b] || D.sports.indexOf(a) - D.sports.indexOf(b));
+const siteOrder = sports => sports.sort((a, b) => D.sports.indexOf(a) - D.sports.indexOf(b));
+const applyFilter = list => {
+  const present = new Set(list.map(p => p.sport));
+  return sportFilter === "All" || !present.has(sportFilter) ? list : list.filter(p => p.sport === sportFilter);
+};
+document.addEventListener("click", e => {
+  const b = e.target.closest(".filters button");
+  if (!b) return;
+  sportFilter = b.dataset.sport;
+  try { localStorage.setItem("sportFilter", sportFilter); } catch (err) {}
+  renderGames(); renderHistory();
+});
 function renderGames() {
   const today = D.picks.filter(p => p.date === D.today);
   // Record and mid-day update picks share one list; only the Record tab tells them apart.
   const games = today.filter(p => p.section === "record" || p.section === "update");
   let h = `<h2>Today · ${niceDate(D.today)}</h2>`;
-  h += games.length ? parlayBlock() + bySport(games)
+  const shown = applyFilter(games);
+  h += games.length ? filterBar(games, fewestFirst) + (shown === games ? parlayBlock() : "") + bySport(shown)
                   : `<div class="empty">${Number(new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles", hour: "numeric", hourCycle: "h23" })) < 8
                       ? "Today's card goes live at 8:00 AM PT." : "No record card today. Tomorrow's card goes live at 8:00 AM PT."}</div>`;
   document.getElementById("games").innerHTML = h;
@@ -327,7 +362,8 @@ function daysSection(list, emptyText) {
 }
 function renderHistory() {
   const list = recordPicks().filter(p => p.date < D.today);
-  document.getElementById("history").innerHTML = `<h2>History</h2>` + daysSection(list, "No graded days yet.");
+  document.getElementById("history").innerHTML = `<h2>History</h2>` + filterBar(list, siteOrder)
+    + daysSection(applyFilter(list), "No graded days yet.");
 }
 
 /* ---------- Learning ---------- */
