@@ -135,6 +135,7 @@
   @media (max-width: 480px) { table { font-size: 13px; } th, td { padding: 9px 8px; white-space: nowrap; }
                               th:first-child, td:first-child { padding-left: 12px; } }
   .res { font-weight: 800; }
+  .hsp { display: none; }
   .res.W { color: var(--win); } .res.L { color: var(--loss); } .res.P, .res.pending { color: var(--push); }
 
   section[hidden] { display: none; }
@@ -162,6 +163,63 @@
   .list .item:last-child { border-bottom: 0; }
   .list .item small { display: block; color: var(--muted); margin-top: 4px; font-size: 13px; }
   .when { color: var(--orange); font-weight: 700; font-size: 12px; margin-right: 8px; }
+  /* Phones: tighter spacing so more games fit on a screen (Bobby 11/12: "more compact and user friendly") */
+  @media (max-width: 640px) {
+    .wrap { padding: 0 12px 40px; }
+    header { padding: 16px 0 4px; }
+    header h1 { font-size: 30px; }
+    header h1::after { width: 32px; height: 3px; margin-top: 8px; }
+    header .updated { font-size: 12px; margin-top: 6px; }
+    nav { margin: 8px auto 12px; top: 6px; }
+    nav button { padding: 7px 13px; font-size: 13px; }
+    h2 { font-size: 19px; margin: 16px 0 8px; }
+    h3 { margin: 18px 0 8px; font-size: 12px; }
+    .note { font-size: 12px; margin: -2px 0 8px; }
+    /* sport chips scroll sideways in one row instead of wrapping */
+    .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px 4px; padding: 0 12px 2px; }
+    .filters::-webkit-scrollbar { display: none; }
+    .filters button { flex: none; padding: 5px 11px; }
+    .grid, .parlays, .steps { gap: 8px; }
+    /* status moves onto the pick line: teams on top, then "PICK ... | FINAL W" in one row */
+    .card { display: grid; grid-template-columns: 1fr auto; }
+    .card .team { grid-column: 1 / -1; }
+    .card-top + .team { margin-top: 4px; }
+    .card-top { grid-area: 3 / 2; padding: 7px 12px 7px 0; margin-top: 2px; border-top: 1px solid var(--line); font-size: 10px; }
+    .card-top .sport { display: none; }
+    .card-pick { grid-area: 3 / 1; justify-content: flex-start; }
+    .team { gap: 10px; padding: 4px 12px; }
+    .team.picked::before { top: 4px; bottom: 4px; }
+    .logo, .abbr-circle { width: 26px; height: 26px; }
+    .abbr-circle { font-size: 9px; }
+    /* abbreviation and full name on one line */
+    .tname { display: flex; align-items: baseline; gap: 6px; overflow: hidden; }
+    .tname b { flex: none; font-size: 15px; }
+    .tname span { flex: 1; min-width: 0; }
+    .score { font-size: 20px; min-width: 34px; }
+    .card-pick { margin-top: 2px; padding: 7px 12px; font-size: 10px; }
+    .card-pick b { font-size: 13px; }
+    .parlay-top { padding: 10px 12px 0; }
+    .parlay-odds { font-size: 22px; }
+    .parlay-sub { padding: 0 12px 6px; font-size: 11px; }
+    .leg { padding: 6px 12px; font-size: 12.5px; }
+    .big { padding: 16px 12px; }
+    .big .rec { font-size: 38px; }
+    .tiles { gap: 8px; }
+    .tile { padding: 10px 6px; }
+    .tile .v { font-size: 22px; }
+    .step { padding: 12px; }
+    .step p { font-size: 13px; }
+    .list { padding: 2px 12px; }
+    .list .item { padding: 10px 0; }
+    /* History: sport moves into the matchup cell so every column fits without sideways scrolling */
+    .hist { font-size: 12px; }
+    .hist th, .hist td { padding: 8px 6px; }
+    .hist th:first-child, .hist td:first-child { padding-left: 6px; }
+    .hist .c-sport { display: none; }
+    .hist .hsp { display: block; color: var(--muted); font-size: 9.5px; font-weight: 800; letter-spacing: .06em; line-height: 1.2; }
+    .hist tr > :nth-child(2) { padding-left: 10px; }
+    footer { margin-top: 32px; }
+  }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
@@ -169,7 +227,7 @@
 <div class="wrap">
   <header>
     <h1>Bobby's Plays</h1>
-    <div class="updated">Last updated Thursday, Nov 12, 8:00 AM PT</div>
+    <div class="updated">Last updated Thursday, Nov 12, 8:24 PM PT</div>
   </header>
 
   <nav id="tabs">
@@ -372,11 +430,11 @@ function renderRecord() {
 /* ---------- History ---------- */
 const sportThenStart = (a, b) => D.sports.indexOf(a.sport) - D.sports.indexOf(b.sport) || byStart(a, b);
 function dayTable(list) {
-  let h = `<div class="tbl-wrap"><table><thead><tr><th>Sport</th><th>Matchup</th><th>Pick</th>
+  let h = `<div class="tbl-wrap"><table class="hist"><thead><tr><th class="c-sport">Sport</th><th>Matchup</th><th>Pick</th>
            <th>Result</th><th class="num">Units</th></tr></thead><tbody>`;
   for (const p of list.slice().sort(sportThenStart)) {
     const u = p.units !== "" ? Number(p.units) : unitsFor(p.result, p.odds);
-    h += `<tr><td>${esc(p.sport)}</td><td>${p.away_rank ? "#" + esc(p.away_rank) + " " : ""}${esc(p.away_abbr || p.away)} at ${p.home_rank ? "#" + esc(p.home_rank) + " " : ""}${esc(p.home_abbr || p.home)}</td>
+    h += `<tr><td class="c-sport">${esc(p.sport)}</td><td><span class="hsp">${esc(p.sport)}</span>${p.away_rank ? "#" + esc(p.away_rank) + " " : ""}${esc(p.away_abbr || p.away)} at ${p.home_rank ? "#" + esc(p.home_rank) + " " : ""}${esc(p.home_abbr || p.home)}</td>
       <td>${pickLabel(p)}</td><td class="res ${p.result || "pending"}">${p.result || "—"}</td>
       <td class="num ${u === null ? "" : unitClass(u)}">${u === null ? "" : fmtUnits(u)}</td></tr>`;
   }
