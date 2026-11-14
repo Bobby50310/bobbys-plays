@@ -227,7 +227,7 @@
 <div class="wrap">
   <header>
     <h1>Bobby's Plays</h1>
-    <div class="updated">Last updated Saturday, Nov 14, 8:25 AM PT</div>
+    <div class="updated">Last updated Saturday, Nov 14, 8:32 AM PT</div>
   </header>
 
   <nav id="tabs">
@@ -353,10 +353,15 @@ function legResult(p) {
 }
 function parlayBlock() {
   const byKey = Object.fromEntries(D.picks.map(p => [p.key, p]));
-  const list = (D.parlays || []).filter(x => x.legs.every(k => byKey[k]));
+  // A leg is a record-pick key (through 11/14) or {key, side, odds, result}: the market favorite's
+  // moneyline on a record game (from 11/15), shown and graded as that moneyline.
+  const legKey = l => typeof l === "string" ? l : l.key;
+  const legOf = l => typeof l === "string" ? byKey[l]
+    : { ...byKey[l.key], pick_side: l.side, market: "ML", line: "", odds: l.odds, result: l.result || "" };
+  const list = (D.parlays || []).filter(x => x.legs.every(l => byKey[legKey(l)]));
   if (!list.length) return "";
   return `<h3>Parlays of the day</h3><div class="parlays">` + list.map(x => {
-    const legs = x.legs.map(k => byKey[k]), res = legs.map(legResult);
+    const legs = x.legs.map(legOf), res = legs.map(legResult);
     const status = res.includes("L") ? `<span class="badge L">MISS</span>`
       : res.every(r => r === "W" || r === "P") ? `<span class="badge W">HIT</span>` : "";
     return `<div class="parlay"><div class="parlay-top"><b>${legs.length}-leg parlay ${status}</b>
